@@ -5,14 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Numerical Analysis Solver</title>
 
-    <!-- Link external CSS -->
-    <link rel="stylesheet" href="style.css">
+    <!-- ============================= -->
+    <!-- BASIC STYLING (KEEP SIMPLE) -->
+    <!-- ============================= -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: #1e293b;
+            padding: 15px;
+            text-align: center;
+        }
+
+        main {
+            padding: 20px;
+        }
+
+        input, button, select {
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+        }
+
+        button {
+            background: #22c55e;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #334155;
+            padding: 8px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 
 <header>
     <h1>Numerical Analysis Web App 👽</h1>
-    <p>Bisection Method</p>
+    <p>Bisection Method (Step 1)</p>
 </header>
 
 <main>
@@ -21,24 +66,34 @@
     <!-- INPUT SECTION -->
     <!-- ============================= -->
 
+    <!-- Function input (user writes JS function like x*x - 4) -->
     <label>Enter Function f(x):</label>
     <input type="text" id="functionInput" placeholder="e.g. x*x - 4">
 
+    <!-- Lower bound xl -->
     <label>Lower Bound (xl):</label>
     <input type="number" id="xl">
 
+    <!-- Upper bound xu -->
     <label>Upper Bound (xu):</label>
     <input type="number" id="xu">
 
+    <!-- Tolerance -->
     <label>Tolerance (%):</label>
     <input type="number" id="tol" value="0.1">
 
+    <!-- Max Iterations -->
     <label>Max Iterations:</label>
     <input type="number" id="maxIter" value="50">
 
+    <!-- Run Button -->
     <button onclick="runBisection()">Run Bisection</button>
 
-    <!-- RESULTS -->
+
+    <!-- ============================= -->
+    <!-- RESULTS TABLE -->
+    <!-- ============================= -->
+
     <table id="resultTable">
         <thead>
             <tr>
@@ -52,10 +107,103 @@
 
 </main>
 
-<!-- Load scripts -->
-<script src="methods/bisection.js"></script>
-<script src="script.js"></script>
+
+<!-- ============================= -->
+<!-- JAVASCRIPT LOGIC -->
+<!-- ============================= -->
+<script>
+
+    // ======================================
+    // Convert user input string into function
+    // Example: "x*x - 4" -> function(x){...}
+    // ======================================
+    function parseFunction(expr) {
+        return function(x) {
+            return eval(expr);
+        };
+    }
+
+
+    // ======================================
+    // BISECTION METHOD IMPLEMENTATION
+    // Based on PDF algorithm
+    // ======================================
+    function bisection(f, xl, xu, tol, maxIter) {
+
+        let xr = 0;              // current root estimate
+        let xrold = 0;           // previous root estimate
+        let ea = 100;            // approximate error
+        let iter = 0;            // iteration counter
+
+        let results = [];        // store iteration data
+
+        while (ea > tol && iter < maxIter) {
+
+            xrold = xr;                          // store previous xr
+            xr = (xl + xu) / 2;                  // midpoint formula
+
+            let test = f(xl) * f(xr);           // check sign change
+
+            // Decide interval update
+            if (test < 0) {
+                xu = xr;
+            } else if (test > 0) {
+                xl = xr;
+            } else {
+                ea = 0; // exact root found
+            }
+
+            // Error calculation (avoid division by zero)
+            if (xr !== 0) {
+                ea = Math.abs((xr - xrold) / xr) * 100;
+            }
+
+            iter++;
+
+            // Save iteration data
+            results.push({ iter, xr, ea });
+        }
+
+        return results;
+    }
+
+
+    // ======================================
+    // RUN FUNCTION (connect UI with logic)
+    // ======================================
+    function runBisection() {
+
+        // Get user inputs
+        const expr = document.getElementById("functionInput").value;
+        const xl = parseFloat(document.getElementById("xl").value);
+        const xu = parseFloat(document.getElementById("xu").value);
+        const tol = parseFloat(document.getElementById("tol").value);
+        const maxIter = parseInt(document.getElementById("maxIter").value);
+
+        // Convert string to function
+        const f = parseFunction(expr);
+
+        // Run algorithm
+        const results = bisection(f, xl, xu, tol, maxIter);
+
+        // Display results in table
+        const tbody = document.querySelector("#resultTable tbody");
+        tbody.innerHTML = ""; // clear old data
+
+        results.forEach(row => {
+            const tr = document.createElement("tr");
+
+            tr.innerHTML = `
+                <td>${row.iter}</td>
+                <td>${row.xr.toFixed(6)}</td>
+                <td>${row.ea.toFixed(4)}</td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+    }
+
+</script>
 
 </body>
 </html>
-
