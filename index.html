@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Numerical Analysis Solver</title>
+
+    <!-- Link external CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <h1>Numerical Analysis Web App 👽</h1>
+    <p>Bisection Method</p>
+</header>
+
+<main>
+
+    <!-- ============================= -->
+    <!-- INPUT SECTION -->
+    <!-- ============================= -->
+
+    <label>Enter Function f(x):</label>
+    <input type="text" id="functionInput" placeholder="e.g. x*x - 4">
+
+    <label>Lower Bound (xl):</label>
+    <input type="number" id="xl">
+
+    <label>Upper Bound (xu):</label>
+    <input type="number" id="xu">
+
+    <label>Tolerance (%):</label>
+    <input type="number" id="tol" value="0.1">
+
+    <label>Max Iterations:</label>
+    <input type="number" id="maxIter" value="50">
+
+    <button onclick="runBisection()">Run Bisection</button>
+
+    <!-- RESULTS -->
+    <table id="resultTable">
+        <thead>
+            <tr>
+                <th>Iteration</th>
+                <th>xr</th>
+                <th>Error (%)</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+</main>
+
+<!-- Load scripts -->
+<script src="methods/bisection.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>
+
