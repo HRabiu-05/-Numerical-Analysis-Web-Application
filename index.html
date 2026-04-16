@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Numerical Analysis Pro System</title>
+
+<style>
+body { font-family: Arial; background:#0f172a; color:white; margin:0; }
+header { background:#1e293b; padding:15px; text-align:center; }
+main { padding:20px; max-width:1100px; margin:auto; }
+input, button, select, textarea { width:100%; padding:10px; margin:6px 0; }
+button { background:#22c55e; border:none; cursor:pointer; }
+table { width:100%; margin-top:20px; border-collapse:collapse; }
+th, td { border:1px solid #334155; padding:8px; text-align:center; }
+.hidden { display:none; }
+canvas { background:white; margin-top:20px; }
+</style>
+</head>
+
+<body>
+<header>
+<h1>Numerical Analysis Software 👽🚀</h1>
+<p>Final Enhanced Version (With Iterations + Error Graph)</p>
+</header>
+
+<main>
+
+<select id="mode" onchange="switchMode()">
+<option value="roots">Root Finding</option>
+<option value="linear">Linear Systems</option>
+</select>
+
+<!-- ROOT SECTION -->
+<div id="rootSection">
+<select id="method">
+<option value="bisection">Bisection</option>
+<option value="newton">Newton</option>
+</select>
+
+<input id="fx" placeholder="f(x)">
+<input id="dfx" placeholder="f'(x)">
+<input id="x0" placeholder="x0 / xl">
+<input id="x1" placeholder="x1 / xu">
+<input id="tol" placeholder="Tolerance" value="0.1">
+<input id="maxIter" placeholder="Max Iter" value="20">
+
+<button onclick="solveRoot()">Solve Root</button>
+
+<canvas id="graph" width="500" height="300"></canvas>
+<canvas id="errorGraph" width="500" height="300"></canvas>
+
+</div>
+
+<!-- LINEAR SECTION -->
+<div id="linearSection" class="hidden">
+<textarea id="A"></textarea>
+<input id="B">
+<select id="linearMethod">
+<option value="jordan">Gauss-Jordan</option>
+<option value="lu">LU</option>
+</select>
+<button onclick="solveLinear()">Solve</button>
+</div>
+
+<table>
+<thead>
+<tr><th>Iter</th><th>xr</th><th>Error</th></tr>
+</thead>
+<tbody id="output"></tbody>
+</table>
+
+</main>
+
+<script>
+
+// =============================
+// SWITCH MODE
+// =============================
+function switchMode(){
+let m=document.getElementById("mode").value;
+document.getElementById("rootSection").classList.toggle("hidden",m!="roots");
+document.getElementById("linearSection").classList.toggle("hidden",m!="linear");
+}
+
+// =============================
+// SAFE FUNCTION PARSER
+// =============================
+function f(expr){
+    // Wrap eval safely
+    return function(x){ return eval(expr); };
+}
+
+// =============================
+// BISECTION WITH ITERATIONS
+// =============================
+function bisection(f,xl,xu,tol,maxIter){
+    let xr=0,ea=100,iter=0,data=[];
+
+    while(ea>tol && iter<maxIter){
+        let old=xr;
+        xr=(xl+xu)/2;
+
+        let test=f(xl)*f(xr);
+        if(test<0) xu=xr;
+        else xl=xr;
+
+        if(xr!==0) ea=Math.abs((xr-old)/xr)*100;
+
+        iter++;
+        data.push({iter,xr,ea});
+    }
+
+    return data;
+}
+
+// =============================
+// NEWTON WITH ITERATIONS
+// =============================
+function newton(f,df,x0,tol,maxIter){
+    let xr=x0,ea=100,iter=0,data=[];
+
+    while(ea>tol && iter<maxIter){
+        let old=xr;
+        xr=xr - f(xr)/df(xr);
+
+        if(xr!==0) ea=Math.abs((xr-old)/xr)*100;
+
+        iter++;
+        data.push({iter,xr,ea});
+    }
+
+    return data;
+}
+
+// =============================
+// ROOT SOLVER MAIN
+// =============================
+function solveRoot(){
+    let fx=f(document.getElementById("fx").value);
+    let df=f(document.getElementById("dfx").value);
+    let x0=parseFloat(document.getElementById("x0").value);
+    let x1=parseFloat(document.getElementById("x1").value);
+    let tol=parseFloat(document.getElementById("tol").value);
+    let maxIter=parseInt(document.getElementById("maxIter").value);
+
+    let method=document.getElementById("method").value;
+
+    let data;
+
+    if(method=="bisection") data=bisection(fx,x0,x1,tol,maxIter);
+    if(method=="newton") data=newton(fx,df,x0,tol,maxIter);
+
+    displayTable(data);
+    plotFunction(fx);
+    plotError(data);
+}
+
+// =============================
+// DISPLAY ITERATION TABLE
+// =============================
+function displayTable(data){
+    let out=document.getElementById("output");
+    out.innerHTML="";
+
+    data.forEach(row=>{
+        let tr=document.createElement("tr");
+        tr.innerHTML=`<td>${row.iter}</td><td>${row.xr.toFixed(6)}</td><td>${row.ea.toFixed(4)}</td>`;
+        out.appendChild(tr);
+    });
+}
+
+// =============================
+// FUNCTION GRAPH
+// =============================
+function plotFunction(fx){
+    let c=document.getElementById("graph");
+    let ctx=c.getContext("2d");
+    ctx.clearRect(0,0,c.width,c.height);
+
+    ctx.beginPath();
+
+    for(let x=-10;x<=10;x+=0.1){
+        let y=fx(x);
+        let px=(x+10)*25;
+        let py=150 - y*10;
+        if(x===-10) ctx.moveTo(px,py);
+        else ctx.lineTo(px,py);
+    }
+
+    ctx.stroke();
+}
+
+// =============================
+// ERROR GRAPH (NEW 🔥)
+// Plots error vs iteration
+// =============================
+function plotError(data){
+    let c=document.getElementById("errorGraph");
+    let ctx=c.getContext("2d");
+    ctx.clearRect(0,0,c.width,c.height);
+
+    ctx.beginPath();
+
+    data.forEach((row,i)=>{
+        let x=i*20;
+        let y=300 - row.ea*2;
+
+        if(i===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+    });
+
+    ctx.stroke();
+}
+
+// =============================
+// MATRIX PARSER
+// =============================
+function parseM(t){ return t.split("\n").map(r=>r.split(",").map(Number)); }
+
+// =============================
+// GAUSS-JORDAN
+// =============================
+function gaussJordan(A,b){
+let n=A.length;
+for(let i=0;i<n;i++){
+    let diag=A[i][i];
+    for(let j=0;j<n;j++) A[i][j]/=diag;
+    b[i]/=diag;
+    for(let k=0;k<n;k++){
+        if(k!==i){
+            let factor=A[k][i];
+            for(let j=0;j<n;j++) A[k][j]-=factor*A[i][j];
+            b[k]-=factor*b[i];
+        }
+    }
+}
+return b;
+}
+
+// =============================
+// LU DECOMPOSITION
+// =============================
+function lu(A,b){
+let n=A.length;
+let L=Array.from({length:n},()=>Array(n).fill(0));
+let U=Array.from({length:n},()=>Array(n).fill(0));
+
+for(let i=0;i<n;i++){
+    L[i][i]=1;
+
+    for(let j=i;j<n;j++){
+        U[i][j]=A[i][j];
+        for(let k=0;k<i;k++) U[i][j]-=L[i][k]*U[k][j];
+    }
+
+    for(let j=i+1;j<n;j++){
+        L[j][i]=A[j][i];
+        for(let k=0;k<i;k++) L[j][i]-=L[j][k]*U[k][i];
+        L[j][i]/=U[i][i];
+    }
+}
+
+let y=new Array(n);
+for(let i=0;i<n;i++){
+    y[i]=b[i];
+    for(let k=0;k<i;k++) y[i]-=L[i][k]*y[k];
+}
+
+let x=new Array(n);
+for(let i=n-1;i>=0;i--){
+    x[i]=y[i];
+    for(let k=i+1;k<n;k++) x[i]-=U[i][k]*x[k];
+    x[i]/=U[i][i];
+}
+
+return x;
+}
+
+// =============================
+// LINEAR SOLVER
+// =============================
+function solveLinear(){
+let A=parseM(document.getElementById("A").value);
+let b=document.getElementById("B").value.split(",").map(Number);
+let method=document.getElementById("linearMethod").value;
+
+let res;
+if(method=="jordan") res=gaussJordan(A,b);
+if(method=="lu") res=lu(A,b);
+
+// Display as simple result rows
+let out=document.getElementById("output");
+out.innerHTML="";
+res.forEach((v,i)=>{
+let tr=document.createElement("tr");
+tr.innerHTML=`<td colspan='3'>x${i+1} = ${v.toFixed(6)}</td>`;
+out.appendChild(tr);
+});
+}
+
+</script>
+
+</body>
+</html>
+
