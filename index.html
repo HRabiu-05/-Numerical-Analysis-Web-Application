@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Numerical Analysis Pro System</title>
+<title>HRABIU Numerical Analysis System</title>
 
 <style>
 body { font-family: Arial; background:#0f172a; color:white; margin:0; }
@@ -20,8 +20,8 @@ canvas { background:white; margin-top:20px; }
 
 <body>
 <header>
-<h1>Numerical Analysis Software 👽🚀</h1>
-<p>Final Enhanced Version (With Iterations + Error Graph)</p>
+<h1>HRABIU Numerical Analysis Software 👽🚀</h1>
+<p>Ch1 + Ch2 + Ch3 (Interpolation)</p>
 </header>
 
 <main>
@@ -29,9 +29,10 @@ canvas { background:white; margin-top:20px; }
 <select id="mode" onchange="switchMode()">
 <option value="roots">Root Finding</option>
 <option value="linear">Linear Systems</option>
+<option value="interp">Interpolation (Chapter 3)</option>
 </select>
 
-<!-- ROOT SECTION -->
+<!-- ================= ROOT SECTION ================= -->
 <div id="rootSection">
 <select id="method">
 <option value="bisection">Bisection</option>
@@ -42,17 +43,12 @@ canvas { background:white; margin-top:20px; }
 <input id="dfx" placeholder="f'(x)">
 <input id="x0" placeholder="x0 / xl">
 <input id="x1" placeholder="x1 / xu">
-<input id="tol" placeholder="Tolerance" value="0.1">
-<input id="maxIter" placeholder="Max Iter" value="20">
 
 <button onclick="solveRoot()">Solve Root</button>
-
 <canvas id="graph" width="500" height="300"></canvas>
-<canvas id="errorGraph" width="500" height="300"></canvas>
-
 </div>
 
-<!-- LINEAR SECTION -->
+<!-- ================= LINEAR SECTION ================= -->
 <div id="linearSection" class="hidden">
 <textarea id="A"></textarea>
 <input id="B">
@@ -63,10 +59,28 @@ canvas { background:white; margin-top:20px; }
 <button onclick="solveLinear()">Solve</button>
 </div>
 
+<!-- ================= INTERPOLATION SECTION ================= -->
+<div id="interpSection" class="hidden">
+
+<!-- Input known data points -->
+<label>Enter X values:</label>
+<input id="xVals" placeholder="e.g. 1,2,3">
+
+<label>Enter Y values:</label>
+<input id="yVals" placeholder="e.g. 2,4,9">
+
+<label>Find value at x =</label>
+<input id="xTarget" placeholder="e.g. 2.5">
+
+<select id="interpMethod">
+<option value="lagrange">Lagrange Interpolation</option>
+</select>
+
+<button onclick="solveInterp()">Interpolate</button>
+</div>
+
+<!-- OUTPUT TABLE -->
 <table>
-<thead>
-<tr><th>Iter</th><th>xr</th><th>Error</th></tr>
-</thead>
 <tbody id="output"></tbody>
 </table>
 
@@ -75,142 +89,54 @@ canvas { background:white; margin-top:20px; }
 <script>
 
 // =============================
-// SWITCH MODE
+// MODE SWITCH
 // =============================
 function switchMode(){
 let m=document.getElementById("mode").value;
 document.getElementById("rootSection").classList.toggle("hidden",m!="roots");
 document.getElementById("linearSection").classList.toggle("hidden",m!="linear");
+document.getElementById("interpSection").classList.toggle("hidden",m!="interp");
 }
 
 // =============================
-// SAFE FUNCTION PARSER
+// FUNCTION PARSER
 // =============================
-function f(expr){
-    // Wrap eval safely
-    return function(x){ return eval(expr); };
-}
+function f(expr){ return x=>eval(expr); }
 
 // =============================
-// BISECTION WITH ITERATIONS
-// =============================
-function bisection(f,xl,xu,tol,maxIter){
-    let xr=0,ea=100,iter=0,data=[];
-
-    while(ea>tol && iter<maxIter){
-        let old=xr;
-        xr=(xl+xu)/2;
-
-        let test=f(xl)*f(xr);
-        if(test<0) xu=xr;
-        else xl=xr;
-
-        if(xr!==0) ea=Math.abs((xr-old)/xr)*100;
-
-        iter++;
-        data.push({iter,xr,ea});
-    }
-
-    return data;
-}
-
-// =============================
-// NEWTON WITH ITERATIONS
-// =============================
-function newton(f,df,x0,tol,maxIter){
-    let xr=x0,ea=100,iter=0,data=[];
-
-    while(ea>tol && iter<maxIter){
-        let old=xr;
-        xr=xr - f(xr)/df(xr);
-
-        if(xr!==0) ea=Math.abs((xr-old)/xr)*100;
-
-        iter++;
-        data.push({iter,xr,ea});
-    }
-
-    return data;
-}
-
-// =============================
-// ROOT SOLVER MAIN
+// ROOT METHODS
 // =============================
 function solveRoot(){
-    let fx=f(document.getElementById("fx").value);
-    let df=f(document.getElementById("dfx").value);
-    let x0=parseFloat(document.getElementById("x0").value);
-    let x1=parseFloat(document.getElementById("x1").value);
-    let tol=parseFloat(document.getElementById("tol").value);
-    let maxIter=parseInt(document.getElementById("maxIter").value);
+let fx=f(document.getElementById("fx").value);
+let df=f(document.getElementById("dfx").value);
+let x0=parseFloat(document.getElementById("x0").value);
+let x1=parseFloat(document.getElementById("x1").value);
+let method=document.getElementById("method").value;
 
-    let method=document.getElementById("method").value;
+let root;
+if(method=="bisection") root=(x0+x1)/2;
+if(method=="newton") root=x0 - fx(x0)/df(x0);
 
-    let data;
-
-    if(method=="bisection") data=bisection(fx,x0,x1,tol,maxIter);
-    if(method=="newton") data=newton(fx,df,x0,tol,maxIter);
-
-    displayTable(data);
-    plotFunction(fx);
-    plotError(data);
+print([root]);
+plot(fx);
 }
 
 // =============================
-// DISPLAY ITERATION TABLE
+// GRAPH
 // =============================
-function displayTable(data){
-    let out=document.getElementById("output");
-    out.innerHTML="";
-
-    data.forEach(row=>{
-        let tr=document.createElement("tr");
-        tr.innerHTML=`<td>${row.iter}</td><td>${row.xr.toFixed(6)}</td><td>${row.ea.toFixed(4)}</td>`;
-        out.appendChild(tr);
-    });
+function plot(fx){
+let c=document.getElementById("graph");
+let ctx=c.getContext("2d");
+ctx.clearRect(0,0,c.width,c.height);
+ctx.beginPath();
+for(let x=-10;x<=10;x+=0.1){
+let y=fx(x);
+let px=(x+10)*25;
+let py=150-y*10;
+if(x===-10) ctx.moveTo(px,py);
+else ctx.lineTo(px,py);
 }
-
-// =============================
-// FUNCTION GRAPH
-// =============================
-function plotFunction(fx){
-    let c=document.getElementById("graph");
-    let ctx=c.getContext("2d");
-    ctx.clearRect(0,0,c.width,c.height);
-
-    ctx.beginPath();
-
-    for(let x=-10;x<=10;x+=0.1){
-        let y=fx(x);
-        let px=(x+10)*25;
-        let py=150 - y*10;
-        if(x===-10) ctx.moveTo(px,py);
-        else ctx.lineTo(px,py);
-    }
-
-    ctx.stroke();
-}
-
-// =============================
-// ERROR GRAPH (NEW 🔥)
-// Plots error vs iteration
-// =============================
-function plotError(data){
-    let c=document.getElementById("errorGraph");
-    let ctx=c.getContext("2d");
-    ctx.clearRect(0,0,c.width,c.height);
-
-    ctx.beginPath();
-
-    data.forEach((row,i)=>{
-        let x=i*20;
-        let y=300 - row.ea*2;
-
-        if(i===0) ctx.moveTo(x,y);
-        else ctx.lineTo(x,y);
-    });
-
-    ctx.stroke();
+ctx.stroke();
 }
 
 // =============================
@@ -224,16 +150,16 @@ function parseM(t){ return t.split("\n").map(r=>r.split(",").map(Number)); }
 function gaussJordan(A,b){
 let n=A.length;
 for(let i=0;i<n;i++){
-    let diag=A[i][i];
-    for(let j=0;j<n;j++) A[i][j]/=diag;
-    b[i]/=diag;
-    for(let k=0;k<n;k++){
-        if(k!==i){
-            let factor=A[k][i];
-            for(let j=0;j<n;j++) A[k][j]-=factor*A[i][j];
-            b[k]-=factor*b[i];
-        }
-    }
+let diag=A[i][i];
+for(let j=0;j<n;j++) A[i][j]/=diag;
+b[i]/=diag;
+for(let k=0;k<n;k++){
+if(k!==i){
+let factor=A[k][i];
+for(let j=0;j<n;j++) A[k][j]-=factor*A[i][j];
+b[k]-=factor*b[i];
+}
+}
 }
 return b;
 }
@@ -247,31 +173,29 @@ let L=Array.from({length:n},()=>Array(n).fill(0));
 let U=Array.from({length:n},()=>Array(n).fill(0));
 
 for(let i=0;i<n;i++){
-    L[i][i]=1;
-
-    for(let j=i;j<n;j++){
-        U[i][j]=A[i][j];
-        for(let k=0;k<i;k++) U[i][j]-=L[i][k]*U[k][j];
-    }
-
-    for(let j=i+1;j<n;j++){
-        L[j][i]=A[j][i];
-        for(let k=0;k<i;k++) L[j][i]-=L[j][k]*U[k][i];
-        L[j][i]/=U[i][i];
-    }
+L[i][i]=1;
+for(let j=i;j<n;j++){
+U[i][j]=A[i][j];
+for(let k=0;k<i;k++) U[i][j]-=L[i][k]*U[k][j];
+}
+for(let j=i+1;j<n;j++){
+L[j][i]=A[j][i];
+for(let k=0;k<i;k++) L[j][i]-=L[j][k]*U[k][i];
+L[j][i]/=U[i][i];
+}
 }
 
 let y=new Array(n);
 for(let i=0;i<n;i++){
-    y[i]=b[i];
-    for(let k=0;k<i;k++) y[i]-=L[i][k]*y[k];
+y[i]=b[i];
+for(let k=0;k<i;k++) y[i]-=L[i][k]*y[k];
 }
 
 let x=new Array(n);
 for(let i=n-1;i>=0;i--){
-    x[i]=y[i];
-    for(let k=i+1;k<n;k++) x[i]-=U[i][k]*x[k];
-    x[i]/=U[i][i];
+x[i]=y[i];
+for(let k=i+1;k<n;k++) x[i]-=U[i][k]*x[k];
+x[i]/=U[i][i];
 }
 
 return x;
@@ -289,12 +213,54 @@ let res;
 if(method=="jordan") res=gaussJordan(A,b);
 if(method=="lu") res=lu(A,b);
 
-// Display as simple result rows
+print(res);
+}
+
+// =============================
+// LAGRANGE INTERPOLATION (CH3)
+// Formula builds polynomial using all points
+// =============================
+function lagrange(xVals,yVals,x){
+let n=xVals.length;
+let result=0;
+
+for(let i=0;i<n;i++){
+let term=yVals[i];
+
+for(let j=0;j<n;j++){
+if(i!==j){
+term *= (x - xVals[j])/(xVals[i]-xVals[j]);
+}
+}
+
+result+=term;
+}
+
+return result;
+}
+
+// =============================
+// INTERPOLATION SOLVER
+// =============================
+function solveInterp(){
+let xVals=document.getElementById("xVals").value.split(",").map(Number);
+let yVals=document.getElementById("yVals").value.split(",").map(Number);
+let x=parseFloat(document.getElementById("xTarget").value);
+
+let result=lagrange(xVals,yVals,x);
+
+print([result]);
+}
+
+// =============================
+// DISPLAY
+// =============================
+function print(arr){
 let out=document.getElementById("output");
 out.innerHTML="";
-res.forEach((v,i)=>{
+arr.forEach((v,i)=>{
 let tr=document.createElement("tr");
-tr.innerHTML=`<td colspan='3'>x${i+1} = ${v.toFixed(6)}</td>`;
+tr.innerHTML=`<td>x${i+1} = ${v.toFixed(6)}</td>`;
 out.appendChild(tr);
 });
 }
@@ -303,4 +269,3 @@ out.appendChild(tr);
 
 </body>
 </html>
-
